@@ -1,0 +1,260 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "RagdollGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Ragdoll Button
+local outline = Instance.new("Frame")
+outline.Name = "RagdollButton"
+outline.Size = UDim2.new(0, 54, 0, 54)
+outline.Position = UDim2.new(0, 550, 0, 240)
+outline.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+outline.BorderSizePixel = 0
+outline.Visible = false
+outline.Parent = screenGui
+
+local outlineCorner = Instance.new("UICorner")
+outlineCorner.CornerRadius = UDim.new(0, 10)
+outlineCorner.Parent = outline
+
+local shadowLayer = Instance.new("Frame")
+shadowLayer.Size = UDim2.new(1, -2, 1, -2)
+shadowLayer.Position = UDim2.fromOffset(1, 2)
+shadowLayer.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+shadowLayer.BorderSizePixel = 0
+shadowLayer.ZIndex = 2
+shadowLayer.Parent = outline
+
+local shadowCorner = Instance.new("UICorner")
+shadowCorner.CornerRadius = UDim.new(0, 9)
+shadowCorner.Parent = shadowLayer
+
+local face = Instance.new("Frame")
+face.Size = UDim2.new(1, -4, 1, -5)
+face.Position = UDim2.fromOffset(2, 2)
+face.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+face.BorderSizePixel = 0
+face.ZIndex = 3
+face.Parent = outline
+
+local faceCorner = Instance.new("UICorner")
+faceCorner.CornerRadius = UDim.new(0, 8)
+faceCorner.Parent = face
+
+local gloss = Instance.new("Frame")
+gloss.Size = UDim2.new(0.75, 0, 0.3, 0)
+gloss.Position = UDim2.new(0.125, 0, 0.06, 0)
+gloss.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+gloss.BackgroundTransparency = 0.82
+gloss.BorderSizePixel = 0
+gloss.ZIndex = 4
+gloss.Parent = face
+
+local glossCorner = Instance.new("UICorner")
+glossCorner.CornerRadius = UDim.new(0, 5)
+glossCorner.Parent = gloss
+
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(1, 0, 1, 0)
+btn.BackgroundTransparency = 1
+btn.Text = "RAGDOLL"
+btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+btn.Font = Enum.Font.GothamBold
+btn.TextSize = 11
+btn.ZIndex = 5
+btn.Parent = face
+
+btn.MouseButton1Down:Connect(function()
+    face.Position = UDim2.fromOffset(2, 4)
+    gloss.BackgroundTransparency = 0.92
+end)
+
+btn.MouseButton1Up:Connect(function()
+    face.Position = UDim2.fromOffset(2, 2)
+    gloss.BackgroundTransparency = 0.82
+end)
+
+btn.MouseButton1Click:Connect(function()
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("Ragdoll_Request"):FireServer()
+end)
+
+-- Always Sprint + Speed Loop
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local sprintingActive = false
+local speedConnection = nil
+
+local function startSpeedLoop()
+    if speedConnection then return end
+    speedConnection = RunService.RenderStepped:Connect(function()
+        if sprintingActive and character and character.Parent then
+            humanoid.WalkSpeed = 35
+        end
+    end)
+end
+
+local function stopSpeedLoop()
+    if speedConnection then
+        speedConnection:Disconnect()
+        speedConnection = nil
+    end
+    if humanoid and character and character.Parent then
+        humanoid.WalkSpeed = 16
+    end
+end
+
+local function enableSprint()
+    sprintingActive = true
+    startSpeedLoop()
+end
+
+local function disableSprint()
+    sprintingActive = false
+    stopSpeedLoop()
+end
+
+Players.LocalPlayer.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    if sprintingActive then
+        startSpeedLoop()
+    end
+end)
+
+-- PC Tab - F Key Ragdoll Function
+local fKeyActive = false
+
+local function executeFKeyRagdoll()
+    local character = Players.LocalPlayer.Character
+    if not character then return end
+    
+    local leftHand = character:FindFirstChild("LeftHand")
+    if not leftHand then return end
+    
+    local map = workspace:FindFirstChild("Map")
+    if not map then return end
+    
+    local model = map:FindFirstChild("Model")
+    if not model then return end
+    
+    local baseplate = model:FindFirstChild("Baseplate")
+    if not baseplate then return end
+    
+    local args = {
+        leftHand,
+        true,
+        Vector3.new(42.70556640625, -0.25, 51.104034423828125),
+        baseplate
+    }
+    
+    local replicatedStorage = game:GetService("ReplicatedStorage")
+    local remotes = replicatedStorage:FindFirstChild("Remotes")
+    if not remotes then return end
+    
+    local events = remotes:FindFirstChild("Events")
+    if not events then return end
+    
+    local ragdollRequest = events:FindFirstChild("Ragdoll_Request")
+    if not ragdollRequest then return end
+    
+    ragdollRequest:FireServer(unpack(args))
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        if fKeyActive then
+            executeFKeyRagdoll()
+        end
+    end
+end)
+
+local Modal = loadstring(game:HttpGet("https://github.com/BloxCrypto/Modal/releases/download/v1.0-beta/main.lua"))()
+local Window = Modal:CreateWindow({
+    Title = "RunTime",                                -- Renamed hub
+    SubTitle = "RagBlood Script",                                  -- kept same, can be changed
+    Size = UDim2.fromOffset(500, 280),
+    MinimumSize = Vector2.new(250, 200),
+    Transparency = 0,
+    Icon = "rbxassetid://4483362458",                 -- New logo
+})
+
+local function safeDelete(instance)
+    if instance then instance:Destroy() end
+end
+
+local function runGodmode()
+    safeDelete(game:GetService("ReplicatedStorage").Remotes.Events.Dismember)
+    safeDelete(game:GetService("ReplicatedStorage").Bindables.DismemberServer)
+    safeDelete(workspace.Map.MACHINERY.Regen.GeneratorTire.Generator.Engine.Functional.FlyWheel.TouchInterest)
+    safeDelete(workspace.Map.MACHINERY.Regen.GeneratorTire:GetChildren()[2].Engine.Functional.FlyWheel.TouchInterest)
+    safeDelete(workspace.Map.MACHINERY.Regen.GeneratorTire.Generator.Engine.Functional.LaunchTire.Ragdoll)
+end
+
+local Misc = Window:AddTab("Misc")
+Misc:New("Title")({ Title = "Misc" })
+
+Misc:New("Button")({
+    Title = "Godmode (PVP❌)",
+    Description = "Removes dismember events and generator interactions",
+    Callback = function()
+        runGodmode()
+        Window:Notify({ Title = "Godmode", Description = "Activated.", Duration = 3, Type = "Success" })
+    end,
+})
+
+Misc:New("Toggle")({
+    Title = "Always Sprint (35 Speed)",
+    Description = "Sets walk speed to 35, loops until disabled",
+    DefaultValue = false,
+    Callback = function(Value)
+        if Value then
+            enableSprint()
+            Window:Notify({ Title = "Always Sprint", Description = "Speed set to 35", Duration = 2, Type = "Success" })
+        else
+            disableSprint()
+            Window:Notify({ Title = "Always Sprint", Description = "Speed reset to 16", Duration = 2, Type = "Info" })
+        end
+    end,
+})
+
+-- Mobile Tab
+local MobileTab = Window:AddTab("Mobile")
+MobileTab:New("Title")({ Title = "Mobile" })
+
+MobileTab:New("Toggle")({
+    Title = "Ragdoll Button",
+    Description = "Shows the floating ragdoll button",
+    DefaultValue = false,
+    Callback = function(Value)
+        outline.Visible = Value
+    end,
+})
+
+-- PC Tab
+local PCTab = Window:AddTab("PC")
+PCTab:New("Title")({ Title = "Keyboard Ragdoll" })
+
+PCTab:New("Toggle")({
+    Title = "F Key Ragdoll",
+    Description = "Press F to execute ragdoll with LeftHand, Vector3, and Baseplate",
+    DefaultValue = false,
+    Callback = function(Value)
+        fKeyActive = Value
+        if Value then
+            Window:Notify({ Title = "F Key Ragdoll", Description = "Enabled - Press F to ragdoll", Duration = 2, Type = "Success" })
+        else
+            Window:Notify({ Title = "F Key Ragdoll", Description = "Disabled", Duration = 2, Type = "Info" })
+        end
+    end,
+})
+
+Window:SetTab("Misc")
+Window:SetTheme("dark")

@@ -1,2 +1,1 @@
-getgenv().script_key = "KF-XXXX-XXXX-XXXX"
 loadstring(game:HttpGet("https://www.keyforge.win/v1/loader/bootstrap/cmuxl87s103tk6fp4whka7mzb", true))()
